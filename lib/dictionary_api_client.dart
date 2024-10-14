@@ -12,18 +12,21 @@ class DictionaryApiClient {
   static const fileUrl = 'src/kanjiapi_full.json';
 
   Future<List<Object>> fetchDictionary(String line) async {
+    //・・ One kanji character query
+    final firstChar = line[0];
     final jsonUrl = await File(fileUrl).readAsString();
     final apiJson = jsonDecode(jsonUrl);
     var kanjiInnerMap = apiJson['kanjis'];
-    var kanjiDictionary = kanjiInnerMap['$line'];
+    var kanjiDictionary = kanjiInnerMap['$firstChar'];
+
+    //・・ If the input is not a one character Kanji
     var listedKanji = [];
     List<dynamic> listMapKanji = [];
     if (kanjiDictionary == null) {
       // Normalize hiragana keys that contains '-' and '.'
-      String normalizeKey(String key) =>
-          key.replaceAll('-', '').replaceAll('.', '');
+      String normalizeKey(String key) => key.replaceAll('-', '').replaceAll('.', '');
+      // Navigate readings (for hiragana)
       final readingsJson = apiJson['readings'];
-
       for (var entry in readingsJson.entries) {
         String normalizedKey = normalizeKey(entry.key);
         if (entry.key == line && normalizedKey == line) {
@@ -36,15 +39,25 @@ class DictionaryApiClient {
           break;
         }
       }
-
+      // Navigate kanji -> meaning keys (for romaji)
+      if (listedKanji.isEmpty) {
+        for (var value in kanjiInnerMap.values) {
+          final meanings = value['meanings'];
+          for (var meaning in meanings) {
+            if (meaning == line.toLowerCase()) {
+              listedKanji.add(value['kanji']);
+            }
+          }
+        }
+      }
       for (var kanji in listedKanji) {
         kanjiDictionary = kanjiInnerMap['$kanji'];
         listMapKanji.addAll([kanjiDictionary]);
       }
     } else {
-      kanjiDictionary = kanjiInnerMap['$line'];
       listMapKanji.addAll([kanjiDictionary]);
     }
+
     return Dictionary.fromJson(listMapKanji);
   }
 }
