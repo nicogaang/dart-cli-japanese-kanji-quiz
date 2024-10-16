@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:dart_cli_japanese_kanji_quiz/dictionary.dart';
+import 'package:dart_cli_japanese_kanji_quiz/dictionary_word.dart';
 
 class DictionaryApiException implements Exception {
   const DictionaryApiException(this.message);
@@ -12,12 +13,11 @@ class DictionaryApiClient {
   static const fileUrl = 'src/kanjiapi_full.json';
 
   Future<List<Object>> fetchDictionary(String line) async {
-    //・・ One kanji character query
-    final firstChar = line[0];
+    //・・ One kanji character
     final jsonUrl = await File(fileUrl).readAsString();
     final apiJson = jsonDecode(jsonUrl);
     var kanjiInnerMap = apiJson['kanjis'];
-    var kanjiDictionary = kanjiInnerMap['$firstChar'];
+    var kanjiDictionary = kanjiInnerMap['$line'];
 
     //・・ If the input is not a one character Kanji
     var listedKanji = [];
@@ -36,10 +36,9 @@ class DictionaryApiClient {
           if (entry.value['name_kanji'].isNotEmpty) {
             listedKanji.addAll(entry.value['name_kanji']);
           }
-          break;
         }
       }
-      // Navigate kanji -> meaning keys (for romaji)
+      // Navigate kanji -> meaning keys (English Meaning)
       if (listedKanji.isEmpty) {
         for (var value in kanjiInnerMap.values) {
           final meanings = value['meanings'];
@@ -58,6 +57,29 @@ class DictionaryApiClient {
       listMapKanji.addAll([kanjiDictionary]);
     }
 
+    //・・Navigate to words (if input is a word)
+    if (listMapKanji.isEmpty) {
+      final wordsJson = apiJson['words'];
+      List<Map<String, dynamic>> words = [];
+
+      for (var values in wordsJson.values) {
+        for (var entry in values) {
+          for (var variant in entry['variants']) {
+            if (variant['written'] == line) {
+              var meaning = entry['meanings'].map((meaning) => meaning['glosses']).toList();
+              words.add({
+                'kanji': variant['written'],
+                'meanings': meaning,
+                'pronounced': variant['pronounced'],
+              });
+            }
+          }
+        }
+      }
+      return DictionaryWord.fromJsonWord(words);
+    }
+
+    //・・ One kanji character
     return Dictionary.fromJson(listMapKanji);
   }
 }
