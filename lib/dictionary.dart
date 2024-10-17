@@ -27,7 +27,8 @@ class Dictionary {
         frequency: kanjiMap['freq_mainichi_shinbun'] ?? 0,
       ));
     }
-    allKanji.sort((a, b) => b.frequency.compareTo(a.frequency));
+    allKanji.sort((a, b) => b.frequency.compareTo(
+        a.frequency)); //To do : Research about what component of a kanji with common meaning should be sorted.
     return allKanji;
   }
 

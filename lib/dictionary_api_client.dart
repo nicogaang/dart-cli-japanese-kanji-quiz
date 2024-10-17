@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:dart_cli_japanese_kanji_quiz/dictionary.dart';
 import 'package:dart_cli_japanese_kanji_quiz/dictionary_word.dart';
+import 'package:dart_cli_japanese_kanji_quiz/dictionary_functions.dart';
 
 class DictionaryApiException implements Exception {
   const DictionaryApiException(this.message);
@@ -23,36 +24,11 @@ class DictionaryApiClient {
     var listedKanji = [];
     List<dynamic> listMapKanji = [];
     if (kanjiDictionary == null) {
-      // Normalize hiragana keys that contains '-' and '.'
-      String normalizeKey(String key) => key.replaceAll('-', '').replaceAll('.', '');
-      // Navigate readings (for hiragana)
-      final readingsJson = apiJson['readings'];
-      for (var entry in readingsJson.entries) {
-        String normalizedKey = normalizeKey(entry.key);
-        if (entry.key == line && normalizedKey == line) {
-          if (entry.value['main_kanji'].isNotEmpty) {
-            listedKanji.addAll(entry.value['main_kanji']);
-          }
-          if (entry.value['name_kanji'].isNotEmpty) {
-            listedKanji.addAll(entry.value['name_kanji']);
-          }
-        }
-      }
-      // Navigate kanji -> meaning keys (English Meaning)
+      listedKanji = searchInHiragana(apiJson, line);
       if (listedKanji.isEmpty) {
-        for (var value in kanjiInnerMap.values) {
-          final meanings = value['meanings'];
-          for (var meaning in meanings) {
-            if (meaning == line.toLowerCase()) {
-              listedKanji.add(value['kanji']);
-            }
-          }
-        }
+        listedKanji = searchInMeaning(kanjiInnerMap, line);
       }
-      for (var kanji in listedKanji) {
-        kanjiDictionary = kanjiInnerMap['$kanji'];
-        listMapKanji.addAll([kanjiDictionary]);
-      }
+      listMapKanji = searchWithListedKanji(kanjiInnerMap, listedKanji);
     } else {
       listMapKanji.addAll([kanjiDictionary]);
     }
@@ -60,22 +36,8 @@ class DictionaryApiClient {
     //・・Navigate to words (if input is a word)
     if (listMapKanji.isEmpty) {
       final wordsJson = apiJson['words'];
-      List<Map<String, dynamic>> words = [];
+      List<Map<String, dynamic>> words = searchInWords(wordsJson, line);
 
-      for (var values in wordsJson.values) {
-        for (var entry in values) {
-          for (var variant in entry['variants']) {
-            if (variant['written'] == line) {
-              var meaning = entry['meanings'].map((meaning) => meaning['glosses']).toList();
-              words.add({
-                'kanji': variant['written'],
-                'meanings': meaning,
-                'pronounced': variant['pronounced'],
-              });
-            }
-          }
-        }
-      }
       return DictionaryWord.fromJsonWord(words);
     }
 
