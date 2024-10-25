@@ -17,31 +17,41 @@ class DictionaryApiClient {
     //・・ One kanji character
     final jsonUrl = await File(fileUrl).readAsString();
     final apiJson = jsonDecode(jsonUrl);
-    var kanjiInnerMap = apiJson['kanjis'];
-    var kanjiDictionary = kanjiInnerMap['$line'];
+    final kanjiInnerMap = apiJson['kanjis'];
+    final wordsJson = apiJson['words'];
+    final readingsJson = apiJson['readings'];
 
-    //・・ If the input is not a one character Kanji
-    var listedKanji = [];
-    List<dynamic> listMapKanji = [];
-    if (kanjiDictionary == null) {
-      listedKanji = searchInHiragana(apiJson, line);
-      if (listedKanji.isEmpty) {
-        listedKanji = searchInMeaning(kanjiInnerMap, line);
+    var listMapKanji = [];
+    var words = [];
+    var listedKanji;
+    var isRomaji;
+
+    if (isKanji(line)) {
+      var kanjiDictionary = kanjiInnerMap['$line'];
+      if (line.length == 1) {
+        listMapKanji.addAll([kanjiDictionary]);
+      } else {
+        isRomaji = false;
+        words = searchInWords(wordsJson, kanjiInnerMap, line, isRomaji);
+        return DictionaryWord.fromJsonWord(words);
       }
+    } else if (isHiragana(line)) {
+      listedKanji = searchInHiragana(readingsJson, line);
       listMapKanji = searchWithListedKanji(kanjiInnerMap, listedKanji);
+      if (listMapKanji.isEmpty) {
+        isRomaji = false;
+        words = searchInWords(wordsJson, kanjiInnerMap, line, isRomaji);
+        return DictionaryWord.fromJsonWord(words);
+      }
     } else {
-      listMapKanji.addAll([kanjiDictionary]);
+      listedKanji = searchInMeaning(kanjiInnerMap, line);
+      listMapKanji = searchWithListedKanji(kanjiInnerMap, listedKanji);
+      if (listMapKanji.isEmpty) {
+        isRomaji = true;
+        words = searchInWords(wordsJson, kanjiInnerMap, line, isRomaji);
+        return DictionaryWord.fromJsonWord(words);
+      }
     }
-
-    //・・Navigate to words (if input is a word)
-    if (listMapKanji.isEmpty) {
-      final wordsJson = apiJson['words'];
-      List<Map<String, dynamic>> words = searchInWords(wordsJson, line);
-
-      return DictionaryWord.fromJsonWord(words);
-    }
-
-    //・・ One kanji character
     return Dictionary.fromJson(listMapKanji);
   }
 }

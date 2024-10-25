@@ -18,14 +18,16 @@ class Dictionary {
     List<Dictionary> allKanji = [];
 
     for (var kanjiMap in json) {
-      allKanji.add(Dictionary(
-        kanji: _convertToListAndJoin(kanjiMap['kanji']),
-        kunyomi: _convertToListAndJoin(kanjiMap['kun_readings']),
-        meaning: _convertToListAndJoin(kanjiMap['meanings']),
-        onyomi: _convertToListAndJoin(kanjiMap['on_readings']),
-        jlptlvl: kanjiMap['jlpt']?.toString() ?? '',
-        frequency: kanjiMap['freq_mainichi_shinbun'] ?? 0,
-      ));
+      if (kanjiMap != null) {
+        allKanji.add(Dictionary(
+          kanji: _convertToListAndJoin(kanjiMap['kanji']),
+          kunyomi: _convertToListAndJoin(kanjiMap['kun_readings']),
+          meaning: _convertToListAndJoin(kanjiMap['meanings']),
+          onyomi: _convertToListAndJoin(kanjiMap['on_readings']),
+          jlptlvl: kanjiMap['jlpt']?.toString() ?? '',
+          frequency: kanjiMap['freq_mainichi_shinbun'] ?? 0,
+        ));
+      }
     }
     allKanji.sort((a, b) => b.frequency.compareTo(
         a.frequency)); //To do : Research about what component of a kanji with common meaning should be sorted.
@@ -47,8 +49,8 @@ class Dictionary {
   String toString() => '''
 ------------------------------
   Kanji       :$kanji
-  Kunyomi     :$kunyomi
   Meaning     :$meaning
+  Kunyomi     :$kunyomi
   Onyomi      :$onyomi
   JLPT Level  :$jlptlvl
 ''';

@@ -8,7 +8,7 @@ Future<void> main() async {
     if (line == 'q') {
       break;
     }
-    // final line = '縞馬';
+    // final line = 'cherry blossom';
     final api = DictionaryApiClient();
     try {
       final kanjis = await api.fetchDictionary(line);

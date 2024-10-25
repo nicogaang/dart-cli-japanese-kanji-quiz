@@ -1,8 +1,28 @@
-List<dynamic> searchInHiragana(Map<String, dynamic> apiJson, String line) {
+import 'package:dart_cli_japanese_kanji_quiz/dictionary.dart';
+
+bool isHiragana(String line) {
+  if (line.isEmpty) return false;
+  final codeUnit = line.codeUnitAt(0);
+  return codeUnit >= 0x3040 && codeUnit <= 0x309F;
+}
+
+bool isKatakana(String line) {
+  if (line.isEmpty) return false;
+  final codeUnit = line.codeUnitAt(0);
+  return codeUnit >= 0x30A0 && codeUnit <= 0x30FF;
+}
+
+bool isKanji(String line) {
+  if (line.isEmpty) return false;
+  final codeUnit = line.codeUnitAt(0);
+  return (codeUnit >= 0x4E00 && codeUnit <= 0x9FFF) || (codeUnit >= 0x3400 && codeUnit <= 0x4DBF);
+}
+
+List<dynamic> searchInHiragana(Map<String, dynamic> readingsJson, String line) {
   var listedKanji = [];
   String normalizeKey(String key) => key.replaceAll('-', '').replaceAll('.', '');
   // Navigate readings (for hiragana)
-  final readingsJson = apiJson['readings'];
+
   for (var entry in readingsJson.entries) {
     String normalizedKey = normalizeKey(entry.key);
     if (normalizedKey == line) {
@@ -31,23 +51,48 @@ List<dynamic> searchInMeaning(Map<String, dynamic> kanjiInnerMap, String line) {
   return listedKanji;
 }
 
-List<Map<String, dynamic>> searchInWords(Map<String, dynamic> wordsJson, String line) {
+List<Map<String, dynamic>> searchInWords(
+    Map<String, dynamic> wordsJson, Map<String, dynamic> kanjiInnerMap, String line, bool isRomaji) {
   List<Map<String, dynamic>> words = [];
+  List<Object> dictionary = [];
+  var kanji = [];
   for (var values in wordsJson.values) {
     for (var entry in values) {
       for (var variant in entry['variants']) {
-        var meaning = entry['meanings'].map((meaning) => meaning['glosses']).toList();
-        var variants = entry['variants'].map((variant) => variant['pronounced']).toList();
-        if (variant['written'] == line) {
-          words.add({
-            'kanji': variant['written'],
-            'meanings': meaning,
-            'pronounced': variants,
-          });
+        final meaning = entry['meanings'].map((meaning) => meaning['glosses']).toList();
+        final variants = entry['variants'].map((variant) => variant['pronounced']).toList();
+        if (isRomaji) {
+          if (meaningContainsInput(meaning, line)) {
+            variant['written'].runes.forEach((c) {
+              var char = new String.fromCharCode(c);
+              kanji.add(char);
+            });
+            words.add({
+              'kanji': variant['written'],
+              'meanings': meaning,
+              'pronounced': variants,
+              'dictionary': dictionary,
+            });
+          }
+        } else {
+          if (variant['written'] == line || variants.contains(line)) {
+            variant['written'].runes.forEach((c) {
+              var char = new String.fromCharCode(c);
+              kanji.add(char);
+            });
+            words.add({
+              'kanji': variant['written'],
+              'meanings': meaning,
+              'pronounced': variants,
+              'dictionary': dictionary,
+            });
+          }
         }
       }
     }
   }
+  final listMapKanji = searchWithListedKanji(kanjiInnerMap, kanji.toSet().toList());
+  dictionary.add(Dictionary.fromJson(listMapKanji));
   return words;
 }
 
@@ -58,4 +103,25 @@ List<dynamic> searchWithListedKanji(Map<String, dynamic> kanjiInnerMap, List<dyn
     listMapKanji.addAll([kanjiDictionary]);
   }
   return listMapKanji;
+}
+
+String normalizeMeaning(String meaning) {
+  return meaning
+      .replaceAll(RegExp(r'[()]'), '')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .replaceAll('-', ' ')
+      .trim()
+      .toLowerCase();
+}
+
+bool meaningContainsInput(List<dynamic> wordList, String input) {
+  String normalizedInput = normalizeMeaning(input);
+  for (var sublist in wordList) {
+    for (var word in sublist) {
+      if (normalizeMeaning(word) == normalizedInput) {
+        return true;
+      }
+    }
+  }
+  return false;
 }

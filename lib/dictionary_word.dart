@@ -5,10 +5,12 @@ class DictionaryWord {
     required this.kanji,
     required this.meaning,
     required this.pronounce,
+    required this.dictionary,
   });
   String kanji;
   String meaning;
   String pronounce;
+  String dictionary;
 
   static List<DictionaryWord> fromJsonWord(List<dynamic> json) {
     List<DictionaryWord> allKanji = [];
@@ -18,9 +20,12 @@ class DictionaryWord {
         kanji: _convertToListAndJoin(entry['kanji']),
         meaning: _convertToListAndJoin(entry['meanings']),
         pronounce: _convertToListAndJoin(entry['pronounced']),
+        dictionary: _convertToListAndJoin(entry['dictionary']),
       ));
+
       return true;
     });
+
     if (foundEntry == null) {
       throw DictionaryApiException('No kanji found.');
     }
@@ -41,8 +46,11 @@ class DictionaryWord {
   @override
   String toString() => '''
 ------------------------------
-  Kanji       :$kanji
+  Word        :$kanji
   Meaning     :$meaning
   Pronounce   :$pronounce
+
+  Kanji Meaning
+  $dictionary
 ''';
 }
