@@ -1,4 +1,5 @@
 import 'package:dart_cli_japanese_kanji_quiz/dictionary_api_client.dart';
+import 'package:dart_cli_japanese_kanji_quiz/dictionary_functions.dart';
 
 class DictionaryWord {
   DictionaryWord({
@@ -17,10 +18,10 @@ class DictionaryWord {
 
     var foundEntry = json.firstWhere((entry) {
       allKanji.add(DictionaryWord(
-        kanji: _convertToListAndJoin(entry['kanji']),
-        meaning: _convertToListAndJoin(entry['meanings']),
-        pronounce: _convertToListAndJoin(entry['pronounced']),
-        dictionary: _convertToListAndJoin(entry['dictionary']),
+        kanji: convertToListAndJoin(entry['kanji']),
+        meaning: convertToListAndJoin(entry['meanings']),
+        pronounce: convertToListAndJoin(entry['pronounced']),
+        dictionary: convertToListAndJoin(entry['dictionary']),
       ));
 
       return true;
@@ -30,17 +31,6 @@ class DictionaryWord {
       throw DictionaryApiException('No kanji found.');
     }
     return allKanji;
-  }
-
-// Helper function to handle conversion of a dynamic value to a list and join
-  static String _convertToListAndJoin(dynamic value) {
-    if (value is List) {
-      return value.join(', ').replaceAll('[', '').replaceAll(']', '');
-    } else if (value is String) {
-      return value;
-    } else {
-      return 'n/a';
-    }
   }
 
   @override

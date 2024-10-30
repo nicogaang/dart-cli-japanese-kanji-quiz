@@ -125,3 +125,14 @@ bool meaningContainsInput(List<dynamic> wordList, String input) {
   }
   return false;
 }
+
+// Helper function to handle conversion of a dynamic value to a list and join
+String convertToListAndJoin(dynamic value) {
+  if (value is List) {
+    return value.join(', ').replaceAll('[', '').replaceAll(']', '');
+  } else if (value is String) {
+    return value;
+  } else {
+    return 'n/a';
+  }
+}
