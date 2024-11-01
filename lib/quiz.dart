@@ -1,6 +1,11 @@
 import 'dart:io';
 import 'dart:math';
 
+class QuizException implements Exception {
+  const QuizException(this.message);
+  final String message;
+}
+
 class MapOfSortedKanjiByJlpt {
   final List<dynamic> kanjiByJlpt;
   MapOfSortedKanjiByJlpt({required this.kanjiByJlpt});
@@ -18,8 +23,11 @@ class QuizPaper {
   List<Map<String, dynamic>> setOfQuestion(String typeOfQuiz) {
     List<Map<String, dynamic>> setOfQuestion = [];
     for (var kanji in sortedKanji) {
-      List<dynamic> reading = [convertToListAndJoin(kanji['kun_readings'])];
-      if (kanji['kun_readings'].isEmpty) {
+      List<dynamic> reading = [];
+      if (!kanji['kun_readings'].isEmpty) {
+        reading = [convertToListAndJoin(kanji['kun_readings'])];
+      }
+      if (reading.isEmpty) {
         reading.addAll([convertToListAndJoin(kanji['on_readings'])]);
       }
       final choices = generateChoices(sortedKanji, reading);
@@ -43,14 +51,21 @@ List<dynamic> generateChoices(List<dynamic> sortedKanji, List<dynamic> reading) 
   final mainAnswer = reading;
   List<dynamic> choicesWitAnswer = [];
   choicesWitAnswer.addAll(mainAnswer);
-  while (choicesWitAnswer.length < 4) {
+  while (choicesWitAnswer.length < 4 || choicesWitAnswer.isEmpty) {
     final randomKanji = sortedKanji[Random().nextInt(sortedKanji.length)];
-    choicesWitAnswer.addAll([convertToListAndJoin(randomKanji['kun_readings'])]);
-    if (randomKanji['kun_readings'].isEmpty) {
-      choicesWitAnswer.addAll([convertToListAndJoin(randomKanji['on_readings'])]);
+    String readings;
+    if (!randomKanji['kun_readings'].isEmpty) {
+      readings = convertToListAndJoin(randomKanji['kun_readings']);
+      if (readings.isEmpty) {
+        readings = convertToListAndJoin(randomKanji['on_readings']);
+      }
+    } else {
+      continue;
+    }
+    if (!choicesWitAnswer.contains(readings)) {
+      choicesWitAnswer.add(readings);
     }
   }
-
   return choicesWitAnswer;
 }
 
@@ -73,6 +88,7 @@ void startQuiz(List<Map<String, dynamic>> setOfQuestion) {
   List<String> listOfPossibleAnswer = ['a', 'b', 'c', 'd'];
   while (continueQuiz && (page - 1) * itemsPerPage < setOfQuestion.length) {
     final questionsToDisplay = paginateQuizzPaper(setOfQuestion, page, itemsPerPage);
+    questionsToDisplay.shuffle();
     int remaining = remainingItems(setOfQuestion, page, itemsPerPage);
 
     bool answerIsCorrect = false;
@@ -86,9 +102,9 @@ void startQuiz(List<Map<String, dynamic>> setOfQuestion) {
       choice.shuffle();
 
       print('''
-      Page: $page
-      Answered: $answeredItems
-      Score : $score
+      Remaining : $remaining
+      Answered  : $answeredItems
+      Score     : $score
 
       What kanji is this : ${question['question']}
       A : ${choice[0]}
@@ -107,13 +123,13 @@ void startQuiz(List<Map<String, dynamic>> setOfQuestion) {
       } else if (answer == 'd') {
         answerIsCorrect = choice[3] == correctAnswer[0];
       } else if (!listOfPossibleAnswer.contains(answer)) {
-        print('Invalid Answer');
+        print('In Japan, there is no space for error. Sorry.');
       }
       if (answerIsCorrect == true) {
         print('頭がいいね！ You got it right!');
         score++;
       } else {
-        print('ぼぼ アンプタ！ \n Bobo anputa!');
+        print('Wrong answer!');
       }
       answeredItems++;
       bool next = (answeredItems + remaining) == setOfQuestion.length;
@@ -124,11 +140,12 @@ void startQuiz(List<Map<String, dynamic>> setOfQuestion) {
           page++;
           continueQuiz = true;
         } else {
+          print('Thank You! \n Your Score : $score');
           continueQuiz = false;
         }
       }
       if (answeredItems == setOfQuestion.length) {
-        print('End of quiz!');
+        print('End of quiz! \n Your Score : $score');
         continueQuiz = false;
       }
     }
