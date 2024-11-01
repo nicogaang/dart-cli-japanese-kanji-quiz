@@ -27,31 +27,27 @@ Future<void> main() async {
         }
       }
     } else if (choice.toLowerCase() == '2') {
-      stdout.write('Select JLPT level : N(4) | N(3) | N(2) | N(1) \n Choice : ');
+      stdout.write('Select JLPT level : N(4) | N(3) | N(2) | N(1) | (q)uit \n Choice : ');
       var listOfLvl = <String>['1', '2', '3', '4'];
-      final jlptLvl = stdin.readLineSync().toString();
-      if (listOfLvl.contains(jlptLvl)) {
-        final api = QuizApiClient();
-        final kanjiByJlpt = await api.fetchKanjiByJlpt(jlptLvl);
-
-        String typeOfQuiz = 'kanji';
-        final quiz = QuizPaper(kanjiByJlpt: kanjiByJlpt);
-        final setOfQuestion = quiz.setOfQuestion(typeOfQuiz);
-        startQuiz(setOfQuestion);
+      final inputJlptLvl = stdin.readLineSync().toString();
+      if (listOfLvl.contains(inputJlptLvl)) {
+        try {
+          final api = QuizApiClient();
+          final kanjiByJlpt = await api.fetchKanjiByJlpt(inputJlptLvl);
+          String typeOfQuiz = 'kanji';
+          final quiz = QuizPaper(kanjiByJlpt: kanjiByJlpt);
+          final setOfQuestion = quiz.setOfQuestion(typeOfQuiz);
+          startQuiz(setOfQuestion);
+        } on QuizException catch (e) {
+          print(e.message);
+        } catch (e) {
+          print(e);
+        }
+      } else {
+        print('Invalid Choice');
       }
     } else if (choice == 'q') {
       break;
     }
   }
 }
-
-
-// TEST MAIN FUNCTION
-// Future<void> main() async {
-//   final jlptLvl = '4';
-//   final api = QuizApiClient();
-//   final kanjiByJlpt = await api.fetchKanjiByJlpt(jlptLvl);
-//   final quiz = QuizPaper(kanjiByJlpt: kanjiByJlpt);
-//   final questionaire = quiz.setOfQuestion('kanji');
-//   startQuiz(questionaire);
-// }
